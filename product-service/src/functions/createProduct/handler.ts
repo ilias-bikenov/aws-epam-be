@@ -1,17 +1,23 @@
+// import DBFactory, { dbNames } from '../../db/dbFactory';
 import type { ValidatedEventAPIGatewayProxyEvent } from '../../libs/api-gateway';
 import { formatJSONResponse } from '../../libs/api-gateway';
 import { middyfy } from '../../libs/lambda';
-import mockProducts from '../mockProducts';
 import ServerlessClient from 'serverless-postgres';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const getProductList: ValidatedEventAPIGatewayProxyEvent<any> = async (
+const createProduct: ValidatedEventAPIGatewayProxyEvent<any> = async (
   event,
   context
 ) => {
   console.log('New request ', event);
-
+  const { title, description, price } = event.body;
+  if (!title || !description || !price) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify(`Incorrect data is provided`, null, 2),
+    };
+  }
   const client = new ServerlessClient({
     user: process.env.RDS_USER,
     host: process.env.RDS_HOST,
@@ -21,13 +27,20 @@ const getProductList: ValidatedEventAPIGatewayProxyEvent<any> = async (
     debug: true,
     delayMs: 3000,
   });
-
   try {
     await client.connect();
-    const { rows: products } = await client.query('SELECT * FROM products');
+    const {
+      rows: [product],
+    } = await client.query(
+      `INSERT INTO products (title, description, price)
+    VALUES ($1,
+            $2,
+            $3)`,
+      [title, description, +price]
+    );
     await client.clean();
     return formatJSONResponse({
-      products,
+      message: 'Item created successfully',
     });
   } catch (error) {
     console.log(error);
@@ -38,4 +51,4 @@ const getProductList: ValidatedEventAPIGatewayProxyEvent<any> = async (
   }
 };
 
-export const main = middyfy(getProductList);
+export const main = middyfy(createProduct);
