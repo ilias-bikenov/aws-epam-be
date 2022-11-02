@@ -35,6 +35,11 @@ const serverlessConfiguration: AWS = {
             ],
             Resource: 'arn:aws:s3:::awshopuploads/*',
           },
+          {
+            Effect: 'Allow',
+            Action: ['sqs:*'],
+            Resource: '*',
+          },
         ],
       },
     },

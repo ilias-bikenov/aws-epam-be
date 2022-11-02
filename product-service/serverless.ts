@@ -3,6 +3,7 @@ import type { AWS } from '@serverless/typescript';
 import getProductList from '@functions/getProductList';
 import getProductById from '@functions/getProductById';
 import createProduct from '@functions/createProduct';
+import catalogBatchProcess from '@functions/catalogBatchProcess';
 import dotenv from 'dotenv';
 dotenv.config();
 const serverlessConfiguration: AWS = {
@@ -25,9 +26,35 @@ const serverlessConfiguration: AWS = {
       PGDATABASE: process.env.RDS_DB,
       PGPORT: process.env.RDS_PORT,
     },
+    iam: {
+      role: {
+        statements: [
+          {
+            Effect: 'Allow',
+            Action: ['sqs:*', 'sqs:ReceiveMessage'],
+            Resource: '*',
+          },
+        ],
+      },
+    },
+  },
+  resources: {
+    Resources: {
+      SQSQueue: {
+        Type: 'AWS::SQS::Queue',
+        Properties: {
+          QueueName: 'catalog-items-queue-ilias',
+        },
+      },
+    },
   },
   // import the function via paths
-  functions: { getProductList, getProductById, createProduct },
+  functions: {
+    getProductList,
+    getProductById,
+    createProduct,
+    catalogBatchProcess,
+  },
   package: { individually: true },
   custom: {
     esbuild: {
