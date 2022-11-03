@@ -6,6 +6,7 @@ import csv from 'csv-parser';
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 
 const importFileParser = async (event) => {
+  console.log('Event trigerred ', event);
   try {
     const s3 = new S3({});
     const sqsClient = new SQSClient({ region: process.env.REGION });
@@ -20,16 +21,15 @@ const importFileParser = async (event) => {
     const csvParseStream = (stream) =>
       new Promise((resolve, reject) => {
         stream.Body.pipe(csv())
-          .on(
-            'data',
-            async (row) =>
-              await sqsClient.send(
-                new SendMessageCommand({
-                  QueueUrl: process.env.SQS_URL,
-                  MessageBody: row,
-                })
-              )
-          )
+          .on('data', async (row) => {
+            console.log(row);
+            await sqsClient.send(
+              new SendMessageCommand({
+                QueueUrl: process.env.SQS_URL,
+                MessageBody: JSON.stringify(row),
+              })
+            );
+          })
           .on('error', (error) => {
             console.log(error);
             reject;
@@ -38,6 +38,10 @@ const importFileParser = async (event) => {
       });
 
     await csvParseStream(csvStream);
+    console.log({
+      CopySource: `${bucketName}/${putObjectKey}`,
+      Key: putObjectKey.replace('uploaded/', 'parsed/'),
+    });
 
     await s3.copyObject({
       Bucket: bucketName,

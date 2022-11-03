@@ -20,6 +20,8 @@ const serverlessConfiguration: AWS = {
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
       NODE_OPTIONS: '--enable-source-maps --stack-trace-limit=1000',
       BUCKET: process.env.BUCKET,
+      SQS_URL: process.env.SQS_URL,
+      REGION: process.env.REGION,
     },
     iam: {
       role: {
