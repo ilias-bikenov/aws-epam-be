@@ -20,6 +20,8 @@ const serverlessConfiguration: AWS = {
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
       NODE_OPTIONS: '--enable-source-maps --stack-trace-limit=1000',
       BUCKET: process.env.BUCKET,
+      SQS_URL: process.env.SQS_URL,
+      REGION: process.env.REGION,
     },
     iam: {
       role: {
@@ -34,6 +36,11 @@ const serverlessConfiguration: AWS = {
               's3:CopyObject',
             ],
             Resource: 'arn:aws:s3:::awshopuploads/*',
+          },
+          {
+            Effect: 'Allow',
+            Action: ['sqs:*'],
+            Resource: '*',
           },
         ],
       },

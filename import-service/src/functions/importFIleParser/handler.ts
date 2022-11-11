@@ -3,11 +3,13 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 import { S3 } from '@aws-sdk/client-s3';
 import csv from 'csv-parser';
+import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 
 const importFileParser = async (event) => {
+  console.log('Event trigerred ', event);
   try {
     const s3 = new S3({});
-
+    const sqsClient = new SQSClient({ region: process.env.REGION });
     const putObjectKey = event.Records[0].s3.object.key;
     const bucketName = process.env.BUCKET;
 
@@ -19,12 +21,27 @@ const importFileParser = async (event) => {
     const csvParseStream = (stream) =>
       new Promise((resolve, reject) => {
         stream.Body.pipe(csv())
-          .on('data', (chunk) => console.log(chunk))
-          .on('error', reject)
-          .on('end', () => resolve);
+          .on('data', async (row) => {
+            console.log(row);
+            await sqsClient.send(
+              new SendMessageCommand({
+                QueueUrl: process.env.SQS_URL,
+                MessageBody: JSON.stringify(row),
+              })
+            );
+          })
+          .on('error', (error) => {
+            console.log(error);
+            reject;
+          })
+          .on('end', resolve);
       });
 
     await csvParseStream(csvStream);
+    console.log({
+      CopySource: `${bucketName}/${putObjectKey}`,
+      Key: putObjectKey.replace('uploaded/', 'parsed/'),
+    });
 
     await s3.copyObject({
       Bucket: bucketName,
