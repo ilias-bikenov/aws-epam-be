@@ -1,0 +1,23 @@
+Parameters:
+  pDbName:
+    Type: String
+  pDbUser:
+    Type: String
+  pDbPass:
+    Type: String
+    Description: 'It should be less than 8 characters'
+
+Resources:
+  aws-shop-rds:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBName: !Ref pDbName
+      MasterUsername: !Ref pDbUser
+      MasterUserPassword: !Ref pDbPass
+      Engine: PostgreSQL
+      DBInstanceClass: db.t3.micro
+      StorageType: gp2
+      PubliclyAccessible: True
+      AllocatedStorage: '20'
+      DBInstanceIdentifier: !Join ['-', ['aws-shop-rds', !Ref 'AWS::Region']]
+      AvailabilityZone: !Select [1, !GetAZs '']
