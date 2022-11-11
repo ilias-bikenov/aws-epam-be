@@ -20,6 +20,8 @@ const serverlessConfiguration: AWS = {
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
       NODE_OPTIONS: '--enable-source-maps --stack-trace-limit=1000',
       BUCKET: process.env.BUCKET,
+      SQS_URL: process.env.SQS_URL,
+      REGION: process.env.REGION,
     },
     iam: {
       role: {
@@ -35,11 +37,30 @@ const serverlessConfiguration: AWS = {
             ],
             Resource: 'arn:aws:s3:::awshopuploads/*',
           },
+          {
+            Effect: 'Allow',
+            Action: ['sqs:*'],
+            Resource: '*',
+          },
         ],
       },
     },
   },
-
+  resources: {
+    Resources: {
+      GatewayResponse: {
+        Type: 'AWS::ApiGateway::GatewayResponse',
+        Properties: {
+          ResponseParameters: {
+            'gatewayresponse.header.Access-Control-Allow-Origin': "'*'",
+            'gatewayresponse.header.Access-Control-Allow-Headers': "'*'",
+          },
+          ResponseType: 'DEFAULT_4XX',
+          RestApiId: { Ref: 'ApiGatewayRestApi' },
+        },
+      },
+    },
+  },
   // import the function via paths
   functions: { importProductsFile, importFileParser },
   package: { individually: true },
