@@ -3,6 +3,7 @@ import type { AWS } from '@serverless/typescript';
 import getProductList from '@functions/getProductList';
 import getProductById from '@functions/getProductById';
 import createProduct from '@functions/createProduct';
+import catalogBatchProcess from '@functions/catalogBatchProcess';
 import dotenv from 'dotenv';
 dotenv.config();
 const serverlessConfiguration: AWS = {
@@ -24,10 +25,57 @@ const serverlessConfiguration: AWS = {
       PGPASSWORD: process.env.RDS_PASSWORD,
       PGDATABASE: process.env.RDS_DB,
       PGPORT: process.env.RDS_PORT,
+      REGION: process.env.REGION,
+      SNS_ARN: process.env.SNS_ARN,
+    },
+    iam: {
+      role: {
+        statements: [
+          {
+            Effect: 'Allow',
+            Action: ['sqs:*'],
+            Resource: [{ 'Fn::GetAtt': ['SQSQueue', 'Arn'] }],
+          },
+          {
+            Effect: 'Allow',
+            Action: ['sns:*'],
+            Resource: {
+              Ref: 'SNSTopic',
+            },
+          },
+        ],
+      },
+    },
+  },
+  resources: {
+    Resources: {
+      SQSQueue: {
+        Type: 'AWS::SQS::Queue',
+        Properties: {
+          QueueName: 'catalog-items-queue-ilias',
+        },
+      },
+      SNSTopic: {
+        Type: 'AWS::SNS::Topic',
+        Properties: { TopicName: 'createProductTopic' },
+      },
+      SNSSubscription: {
+        Type: 'AWS::SNS::Subscription',
+        Properties: {
+          Endpoint: process.env.EMAIL,
+          Protocol: 'email',
+          TopicArn: { Ref: 'SNSTopic' },
+        },
+      },
     },
   },
   // import the function via paths
-  functions: { getProductList, getProductById, createProduct },
+  functions: {
+    getProductList,
+    getProductById,
+    createProduct,
+    catalogBatchProcess,
+  },
   package: { individually: true },
   custom: {
     esbuild: {
